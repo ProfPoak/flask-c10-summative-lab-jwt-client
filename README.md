@@ -34,7 +34,7 @@ A secure Flask REST API for a personal journaling app. Users can sign up, log in
    pipenv shell
    ```
 
-3. Move into the `server` directory (if your Flask app lives there):
+3. Move into the `server` directory:
    ```bash
    cd server
    ```
