@@ -2,6 +2,7 @@ from flask import request, make_response, jsonify
 from flask_restful import Resource
 from sqlalchemy.exc import IntegrityError
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
+from datetime import datetime, timezone
 
 from config import app, db, api, jwt
 from models import User, UserSchema, JournalEntry, JournalEntrySchema
@@ -81,6 +82,25 @@ class Journal(Resource):
             'has_prev': pagination.has_prev
         }, 200
 
+    def post(self):
+        user_id = int(get_jwt_identity())
+        json = request.get_json()
+
+        try:
+            entry = JournalEntry(
+                title=json['title'],
+                date=datetime.now(timezone.utc),
+                entry=json['entry'],
+                user_id=user_id
+            )
+
+            db.session.add(entry)
+            db.session.commit()
+        except (KeyError, ValueError, IntegrityError) as e:
+            db.session.rollback()
+            return {'errors': [str(e)]}, 422
+
+        return JournalEntrySchema().dump(entry), 201
         
 api.add_resource(Signup, '/signup', endpoint='signup')
 api.add_resource(CheckSession, '/check_session', endpoint='check_session')
