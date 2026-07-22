@@ -11,6 +11,8 @@ class User(db.Model):
     username = db.Column(db.String, nullable=False, unique=True)
     _password_hash = db.Column(db.String, nullable=False)
 
+    journal_entry = db.relationship('JournalEntry', back_populates='users', cascade='all, delete-orphan')
+
     @hybrid_property
     def password_hash(self):
         raise AttributeError('Password hash cannot be viewed')
@@ -24,6 +26,18 @@ class User(db.Model):
         return bcrypt.check_password_hash(
             self._password_hash, password.encode('utf-8')
         )
+
+class JournalEntry(db.Model):
+    __tablename__ = 'journal_entries'
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String, nullable=False)
+    date = db.Column(db.DateTime, nullable=False)
+    entry = db.Column(db.String, nullable=False)
+
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+
+    user = db.relationship('User', back_populates='journal_entries')
 
 class UserSchema(Schema):
     
