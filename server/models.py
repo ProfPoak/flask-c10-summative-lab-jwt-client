@@ -11,7 +11,7 @@ class User(db.Model):
     username = db.Column(db.String, nullable=False, unique=True)
     _password_hash = db.Column(db.String, nullable=False)
 
-    journal_entry = db.relationship('JournalEntry', back_populates='users', cascade='all, delete-orphan')
+    journal_entries = db.relationship('JournalEntry', back_populates='user', cascade='all, delete-orphan')
 
     @hybrid_property
     def password_hash(self):
@@ -43,3 +43,10 @@ class UserSchema(Schema):
     
     id = fields.Int()
     username = fields.String()
+
+class JournalEntrySchema(Schema):
+    id = fields.Int()
+    title = fields.Str()
+    date = fields.DateTime()
+    entry = fields.Str()
+    user_id = fields.Int()    
