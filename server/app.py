@@ -125,6 +125,15 @@ class JournalEntryById(Resource):
             return {'errors': [str(e)]}, 422
 
         return JournalEntrySchema().dump(entry), 200
+    
+    def delete(self, id):
+        entry = self._get_entry(id)
+        if not entry:
+            return {'error': 'Journal entry not found'}, 404
+
+        db.session.delete(entry)
+        db.session.commit()
+        return {}, 204
         
 api.add_resource(Signup, '/signup', endpoint='signup')
 api.add_resource(CheckSession, '/check_session', endpoint='check_session')
