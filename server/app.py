@@ -37,9 +37,29 @@ class CheckSession(Resource):
         user_id = get_jwt_identity()
         user = User.query.get(user_id)
         return UserSchema().dump(user), 200
+
+class Login(Resource):
+   def post(self):
+        username = request.get_json()['username']
+        password = request.get_json()['password']
+
+        user = User.query.filter(User.username == username).first()
+
+        if user and user.authenticate(password):
+            access_token = create_access_token(identity=str(user.id))
+            return make_response(
+                        jsonify(
+                            token=access_token, 
+                            user=UserSchema().dump(user)
+                        ),
+                        201
+                    )
+
+        return {'error': 'Login failed. Please check Username and Password'}, 401
         
 api.add_resource(Signup, '/signup', endpoint='signup')
 api.add_resource(CheckSession, '/check_session', endpoint='check_session')
+api.add_resource(Login, '/login', endpoint='login')
 
 if __name__ == '__main__':
     app.run(port=5555, debug=True)
