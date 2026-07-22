@@ -1,10 +1,10 @@
 from flask import request, make_response, jsonify
 from flask_restful import Resource
 from sqlalchemy.exc import IntegrityError
-from flask_jwt_extended import create_access_token, verify_jwt_in_request, get_jwt_identity, jwt_required
+from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
 
 from config import app, db, api, jwt
-from models import User, UserSchema
+from models import User, UserSchema, JournalEntry, JournalEntrySchema
 
 class Signup(Resource):
     def post(self):
@@ -34,8 +34,8 @@ class Signup(Resource):
 class CheckSession(Resource):
     @jwt_required()
     def get(self):
-        user_id = get_jwt_identity()
-        user = User.query.get(user_id)
+        user_id = int(get_jwt_identity())
+        user = User.query.filter(User.id == user_id).first()
         return UserSchema().dump(user), 200
 
 class Login(Resource):
@@ -52,14 +52,40 @@ class Login(Resource):
                             token=access_token, 
                             user=UserSchema().dump(user)
                         ),
-                        201
+                        200
                     )
 
         return {'error': 'Login failed. Please check Username and Password'}, 401
+
+class Journal(Resource):
+    method_decorators = [jwt_required()]
+
+    def get(self):
+        page = request.args.get("page", 1, type=int)
+        per_page = request.args.get("per_page", 5, type=int)
+        user_id = int(get_jwt_identity())
+
+        pagination = JournalEntry.query.filter_by(user_id=user_id)\
+                .order_by(JournalEntry.date.desc())\
+                .paginate(page=page, per_page=per_page, error_out=False)
+
+        schema = JournalEntrySchema(many=True)
+
+        return{
+            'entries': schema.dump(pagination.items),
+            'page': pagination.page,
+            'per_page': pagination.per_page,
+            'total_pages': pagination.pages,
+            'total_entries': pagination.total,
+            'has_next': pagination.has_next,
+            'has_prev': pagination.has_prev
+        }, 200
+
         
 api.add_resource(Signup, '/signup', endpoint='signup')
 api.add_resource(CheckSession, '/check_session', endpoint='check_session')
 api.add_resource(Login, '/login', endpoint='login')
+api.add_resource(Journal, '/journal', endpoint='journal')
 
 if __name__ == '__main__':
     app.run(port=5555, debug=True)
