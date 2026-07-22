@@ -101,11 +101,36 @@ class Journal(Resource):
             return {'errors': [str(e)]}, 422
 
         return JournalEntrySchema().dump(entry), 201
+
+class JournalEntryById(Resource):
+    method_decorators = [jwt_required()]
+
+    def _get_entry(self, id):
+        user_id = int(get_jwt_identity())
+        return JournalEntry.query.filter_by(id=id, user_id=user_id).first()
+
+    def patch(self, id):
+        entry = self._get_entry(id)
+        if not entry:
+            return {'error': 'Journal entry not found'}, 404
+
+        json = request.get_json()
+        try:
+            for attr in ('title', 'entry'):
+                if attr in json:
+                    setattr(entry, attr, json[attr])
+            db.session.commit()
+        except ValueError as e:
+            db.session.rollback()
+            return {'errors': [str(e)]}, 422
+
+        return JournalEntrySchema().dump(entry), 200
         
 api.add_resource(Signup, '/signup', endpoint='signup')
 api.add_resource(CheckSession, '/check_session', endpoint='check_session')
 api.add_resource(Login, '/login', endpoint='login')
 api.add_resource(Journal, '/journal', endpoint='journal')
+api.add_resource(JournalEntryById, '/journal/<int:id>', endpoint='journal_by_id')
 
 if __name__ == '__main__':
     app.run(port=5555, debug=True)
